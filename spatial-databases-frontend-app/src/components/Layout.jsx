@@ -1,4 +1,4 @@
-// src/components/Layout.jsx
+import React, { useState } from "react";
 import { Outlet, Link } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -7,9 +7,14 @@ import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import { Box, Grid, Avatar } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-//import SettingsIcon from '@mui/icons-material/SettingsIcon';
+import MenuItem from '@mui/material/MenuItem';
+import Menu from '@mui/material/Menu';
+
+const pages = ['Главная', 'Куда сходить', 'Что посмотреть', 'Где поесть', 'Как добраться', 'Советы'];
 
 export default function Layout() {
+
+  //
   return (
     <>
       {/* 1. Фиксированная шапка — НЕ в потоке документа */}
@@ -23,11 +28,23 @@ export default function Layout() {
           bgcolor: '#005a4c', // ваш зелёный цвет
         }}
       >
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Fleet Management
-          </Typography>
-          {/* Добавьте кнопки, иконки, аватар и т.д. */}
+        <Toolbar sx={{ justifyContent: 'center'}}>          
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+            {pages.map((page) => (
+              <Typography
+                key={page}
+                variant="body1"
+                sx={{
+                  color: 'white',
+                  cursor: 'pointer',
+                  '&:hover': { opacity: 0.8 },
+                }}
+                onClick={() => console.log(`Go to ${page}`)}
+              >
+                {page}
+              </Typography>
+            ))}
+        </Box>
         </Toolbar>
       </AppBar>
 
