@@ -18,13 +18,13 @@ export default function Layout() {
   return (
     <>
       {/* 1. Фиксированная шапка — НЕ в потоке документа */}
-      <AppBar
+      {<AppBar
         position="fixed"
         sx={{
           top: 0,
           left: 0,
           right: 0,           // ← вместо width: 100vw!
-          zIndex: (theme) => theme.zIndex.appBar,
+          zIndex: (theme) => theme.zIndex.drawer + 1,
           bgcolor: '#005a4c', // ваш зелёный цвет
         }}
       >
@@ -46,7 +46,7 @@ export default function Layout() {
             ))}
         </Box>
         </Toolbar>
-      </AppBar>
+      </AppBar>}
 
       {/* 2. Основной контент — под шапкой */}
       <Box
@@ -54,12 +54,17 @@ export default function Layout() {
         sx={{
           // Отступ сверху = высоте AppBar (по умолчанию ~56px + 16px padding = ~64px)
           // Лучше использовать theme.mixins.toolbar — это официальный способ MUI
-          ...theme => ({
+          /*...theme => ({
             marginTop: theme.mixins.toolbar.minHeight,
             padding: theme.spacing(3),
-          }),
-          width: '100%',
-          boxSizing: 'border-box',
+          }),*/
+          /*height: 'calc(100vh - 64px)',
+          '@supports (height: 100dvh)': {
+            height: 'calc(100dvh - 64px)',
+          },
+          mt: '32px',*/
+          /*width: '100%',*/
+          boxSizing: 'border-box'
         }}
       >
         <Outlet /> {/* Сюда подставляются HomePage, ProfilePage и др. */}
