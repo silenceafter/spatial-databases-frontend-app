@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useDispatch, useSelector } from 'react-redux';
 /*import { apiKey, YMap,
   YMapDefaultSchemeLayer,
   YMapDefaultFeaturesLayer,
@@ -6,7 +7,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
   YMapZoomControl, YMapContainer,
   YMapListener, YMapDefaultMarker,
 reactify, YMapClusterer, clusterByGrid, YMapHint, YMapHintContext } from '../helpers';*/
-import { Box, Drawer, Grid, Avatar, List, ListItem,
+import { Box, Drawer, Grid, Avatar, List, ListItem, Divider, ListItemAvatar,
   ListItemIcon,
   ListItemText, Toolbar, Typography } from '@mui/material';
 /*import {
@@ -16,22 +17,26 @@ import { Box, Drawer, Grid, Avatar, List, ListItem,
 } from '@mui/icons-material';*/
 
 import { YMaps, Map, Panorama } from '@pbe/react-yandex-maps';
-import { Portal } from 'react-dom';
+import { fetchData } from '../store/slices/routesSlice';
 
 const drawerWidth = 360;
 
 export default function HomePage() {
-  const [tt, setTt] = useState([]);
-  const bb = () => {
-    let hh = [];
-    for(let i = 0; i < 10; i++) {
-      hh.push(<Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>);
-    }
-    return hh;
-  };
+  const dispatch = useDispatch();
+
+  //селекторы
+  const routes = useSelector((state) => state.routes.routes);
+  const loading = useSelector((state) => state.routes.loading);
+  const error = useSelector((state) => state.routes.error);
+
+  //эффекты
+  useEffect(() => {
+    dispatch(fetchData(1));
+  }, []);
 
   return (
     <>
+    {console.log(routes)}
       <Box 
         sx={{ 
           display: 'flex',
@@ -94,44 +99,65 @@ export default function HomePage() {
             </Box>
 
     <Box
-    sx={{
-      position: 'absolute',
-      top: 72,        // отступ от AppBar (64px + 8px)
-      right: 8,      // отступ от правого края
-      width: 200,
-      padding: '10px',
-      bgcolor: 'white',
-      borderRadius: 1,
-      boxShadow: 3,
-      zIndex: 100,    // выше карты
-      color: 'black',
-      overflow: 'auto',
-      maxHeight: `calc(100vh - 100px)`
-    }}
-  >
-    <Typography variant="h6" gutterBottom>
-      Детали поездки
-    </Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
-    <Typography>Нажмите на метку, чтобы увидеть информацию.</Typography>
+      sx={{
+        position: 'absolute',
+        top: 72,        // отступ от AppBar (64px + 8px)
+        right: 8,      // отступ от правого края
+        width: 400,
+        padding: '10px',
+        bgcolor: 'white',
+        borderRadius: 1,
+        boxShadow: 3,
+        zIndex: 100,    // выше карты
+        color: 'black',
+        overflow: 'auto',
+        maxHeight: `calc(100vh - 100px)`,
+        opacity: 0.85,
+      }}
+    >
+    {routes && (<List sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper' }}>
+      {routes.length === 0 ? (
+        <ListItem>
+          <ListItemText primary="Нет маршрутов" />
+        </ListItem>
+      ) : (
+        routes.map((route, index) => (
+          <React.Fragment key={route.id}>
+            {index > 0 && <Divider variant="inset" component="li" />}
+            <ListItem alignItems="flex-start">
+              <ListItemAvatar>
+                <Avatar
+                  alt={route.title}
+                  // Можно использовать иконку по сложности:
+                  sx={{
+                    bgcolor:
+                      route.difficulty === 'easy' ? 'green' :
+                      route.difficulty === 'medium' ? 'orange' : 'red'
+                  }}
+                >
+                  {route.durationHours}ч
+                </Avatar>
+              </ListItemAvatar>
+              <ListItemText
+                primary={route.title}
+                secondary={
+                  <React.Fragment>
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      sx={{ color: 'text.primary', display: 'inline' }}
+                    >
+                      {route.durationHours} часов • {route.difficulty}
+                    </Typography>
+                    {route.description && ` — ${route.description}`}
+                  </React.Fragment>
+                }
+              />
+            </ListItem>
+          </React.Fragment>
+        ))
+      )}
+    </List>)}
   </Box>
           </Box>
       </Box>
