@@ -9,15 +9,16 @@ import { useDispatch, useSelector } from 'react-redux';
 reactify, YMapClusterer, clusterByGrid, YMapHint, YMapHintContext } from '../helpers';*/
 import { Box, Drawer, Grid, Avatar, List, ListItem, Divider, ListItemAvatar,
   ListItemIcon,
-  ListItemText, Toolbar, Typography } from '@mui/material';
+  ListItemText, Toolbar, Typography, 
+  CircularProgress} from '@mui/material';
 /*import {
   Home as HomeIcon,
   Explore as ExploreIcon,
   Restaurant as RestaurantIcon,
 } from '@mui/icons-material';*/
 
-import { YMaps, Map, Panorama } from '@pbe/react-yandex-maps';
-import { fetchData } from '../store/slices/routesSlice';
+import { YMaps, Map, Placemark } from '@pbe/react-yandex-maps';
+import { fetchRoutesList, fetchRouteDetail } from '../store/slices/routesSlice';
 
 const drawerWidth = 360;
 
@@ -25,18 +26,27 @@ export default function HomePage() {
   const dispatch = useDispatch();
 
   //селекторы
-  const routes = useSelector((state) => state.routes.routes);
-  const loading = useSelector((state) => state.routes.loading);
-  const error = useSelector((state) => state.routes.error);
+  const routesList = useSelector((state) => state.routes.list);
+  const routesListStatus = useSelector((state) => state.routes.routesListStatus);
+  //const routesListError = useSelector((state) => state.routes.routesListError);
+  const selectedRoute = useSelector((state) => state.routes.selectedRoute);
+  const routeDetailStatus = useSelector((state) => state.routes.routeDetailStatus);
+  //const routeDetailError = useSelector((state) => state.routes.routeDetailError);
 
   //эффекты
+  // загрузка маршрутов
   useEffect(() => {
-    dispatch(fetchData(1));
-  }, []);
+    dispatch(fetchRoutesList(1));
+  }, [dispatch]);
 
+  // первый маршрут выбран по умолчанию
+  /*useEffect(() => {
+
+  }, [dispatch]);*/
+  //
   return (
     <>
-    {console.log(routes)}
+    {console.log(routesListStatus)}
       <Box 
         sx={{ 
           display: 'flex',
@@ -73,93 +83,96 @@ export default function HomePage() {
           <Box
             sx={{
               width: '100%',
-              flexGrow: 1, 
-              
+              flexGrow: 1,               
               borderRadius: 1, 
               overflow: 'hidden',
               position: 'relative'
             }}
           >
-            {/*<YMap
-              location={{
-                center: [30.3141, 59.9386], // СПб: [долгота, широта]
-                zoom: 10,
-              }}
-              // ⬇️ КРИТИЧНО: явно задаём высоту и ширину в %
-              style={{ width: '100%', height: '100%' }}
-            >
-              <YMapDefaultSchemeLayer />
-              <YMapDefaultFeaturesLayer />              
-            </YMap>*/}
-            <YMaps>
-              
-                <Map defaultState={{ center: [59.9386, 30.3141], zoom: 9 }} height="100vh" width="100vw" />
-              
+            <YMaps>              
+                <Map defaultState={{ center: [59.9386, 30.3141], zoom: 12 }} height="100vh" width="100vw">
+                  <Placemark geometry={[59.9391, 30.3158]} />
+                </Map>
             </YMaps>
-            </Box>
 
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 72,        // отступ от AppBar (64px + 8px)
-        right: 8,      // отступ от правого края
-        width: 400,
-        padding: '10px',
-        bgcolor: 'white',
-        borderRadius: 1,
-        boxShadow: 3,
-        zIndex: 100,    // выше карты
-        color: 'black',
-        overflow: 'auto',
-        maxHeight: `calc(100vh - 100px)`,
-        opacity: 0.85,
-      }}
-    >
-    {routes && (<List sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper' }}>
-      {routes.length === 0 ? (
-        <ListItem>
-          <ListItemText primary="Нет маршрутов" />
-        </ListItem>
-      ) : (
-        routes.map((route, index) => (
-          <React.Fragment key={route.id}>
-            {index > 0 && <Divider variant="inset" component="li" />}
-            <ListItem alignItems="flex-start">
-              <ListItemAvatar>
-                <Avatar
-                  alt={route.title}
-                  // Можно использовать иконку по сложности:
-                  sx={{
-                    bgcolor:
-                      route.difficulty === 'easy' ? 'green' :
-                      route.difficulty === 'medium' ? 'orange' : 'red'
-                  }}
-                >
-                  {route.durationHours}ч
-                </Avatar>
-              </ListItemAvatar>
-              <ListItemText
-                primary={route.title}
-                secondary={
-                  <React.Fragment>
-                    <Typography
-                      component="span"
-                      variant="body2"
-                      sx={{ color: 'text.primary', display: 'inline' }}
-                    >
-                      {route.durationHours} часов • {route.difficulty}
-                    </Typography>
-                    {route.description && ` — ${route.description}`}
-                  </React.Fragment>
-                }
-              />
-            </ListItem>
-          </React.Fragment>
-        ))
-      )}
-    </List>)}
-  </Box>
+          
+            
+        
           </Box>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 72,        // отступ от AppBar (64px + 8px)
+              right: 8,      // отступ от правого края
+              width: 400,
+              padding: '10px',
+              bgcolor: 'white',
+              borderRadius: 1,
+              boxShadow: 3,
+              zIndex: 100,    // выше карты
+              color: 'black',
+              overflow: 'auto',
+              maxHeight: `calc(100vh - 100px)`,
+              opacity: 0.85,
+            }}
+          >
+            {routesListStatus === 'loading' && <CircularProgress size={40}></CircularProgress>}
+            {routesList && routesListStatus === 'succeeded' &&
+              <List sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper' }}>
+              { routesList.length === 0 ? (
+                <ListItem>
+                  <ListItemText primary="Нет маршрутов" />
+                </ListItem>
+              ) : (
+                routesList.map((route, index) => (
+                  <React.Fragment key={route.id}>
+                    {index > 0 && <Divider variant="inset" component="li" />}
+                    <ListItem 
+                      alignItems="flex-start" 
+                      onClick={() => dispatch(fetchRouteDetail(route.id))}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar
+                          alt={route.title}
+                          // Можно использовать иконку по сложности:
+                          sx={{
+                            bgcolor:
+                              route.difficulty === 'Легкий' ? 'green' :
+                              route.difficulty === 'Средний' ? 'orange' : 'red'
+                          }}
+                        >
+                          {route.durationHours}ч
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={route.title}
+                        secondary={
+                          <React.Fragment>
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              sx={{ color: 'text.primary', display: 'inline' }}
+                            >
+                              {route.durationHours} часов • {route.difficulty}
+                            </Typography>
+                            {route.description && ` — ${route.description}`}
+                          </React.Fragment>
+                        }
+                      />
+                    </ListItem>
+                  </React.Fragment>
+                ))
+              )}
+              </List>              
+            }
+          </Box>
+        </Box>
       </Box>
     </>
   );
