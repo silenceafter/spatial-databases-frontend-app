@@ -53,7 +53,7 @@ export const fetchRouteGeometry = createAsyncThunk(
   async (stops, { rejectWithValue }) => {
     try {
       const coords = stops.map(s => `${s.pointOfInterest.longitude},${s.pointOfInterest.latitude}`).join(';');
-      const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${coords}?geometries=geojson&overview=full&steps=false`);
+      const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${coords}?geometries=geojson&overview=simplified&annotations=true`);
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || 'Network response was not ok');
