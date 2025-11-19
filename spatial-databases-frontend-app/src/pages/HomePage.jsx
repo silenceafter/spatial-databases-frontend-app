@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
   YMapListener, YMapDefaultMarker,
 reactify, YMapClusterer, clusterByGrid, YMapHint, YMapHintContext } from '../helpers';*/
 import { Box, Button, Drawer, Grid, Avatar, List, ListItem, Divider, ListItemAvatar, Tab, Tabs, TextField, FormGroup, FormControlLabel, Checkbox, RadioGroup, Radio,
-  ListItemIcon, Autocomplete, 
+  ListItemIcon, Autocomplete, ButtonGroup,
   ListItemText, ListItemButton, Toolbar, Typography, Collapse, Slider,
   CircularProgress,
   FormControl,
@@ -23,7 +23,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 import { YMaps, Map, Placemark, Polyline } from '@pbe/react-yandex-maps';
 import { fetchRoutesList, fetchRouteDetail, fetchRouteGeometry } from '../store/slices/routesSlice';
-import { fetchPoisList } from '../store/slices/poisSlice';
+import { fetchPoisList, fetchSearchByNameList } from '../store/slices/poisSlice';
 import { alpha } from '@mui/material/styles';
 
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
@@ -34,7 +34,17 @@ import AccordionActions from '@mui/material/AccordionActions';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 
+import { PoiSearch } from './components/PoiSearch';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+
 const drawerWidth = 360;
+const categories = [
+  'Арт-объект', 'Археологический памятник', 'Дворец', 'Дворец/замок',
+  'Достопримечательность', 'Крепость', 'Мост', 'Музей',
+  'Объект наследия', 'Памятник', 'Парк', 'Смотровая площадка',
+  'Усадьба', 'Храм'
+];
 
 function pluralizeHours(n) {
   // Берём остаток от деления на 100, чтобы отсечь сотни (111 → 11, 213 → 13)
@@ -64,6 +74,13 @@ export default function HomePage() {
   const [poiMode, setPoiMode] = useState(false);
   const [routeMode, setRouteMode] = useState(true);
   const [tabValue, setTabValue] = useState(0); // 0 = "Маршруты", 1 = "Фильтры"
+  const [sliderValue, setSliderValue] = useState(10);
+  const [autocompleteItems, setAutocompleteItems] = useState([
+    { id: 1, value: null, inputValue: '' }
+  ]);
+
+  const [inputValue, setInputValue] = useState('');
+  const [selectedOption, setSelectedOption] = useState(null);
 
   //селекторы
   const routesList = useSelector((state) => state.routes.list);
@@ -77,6 +94,9 @@ export default function HomePage() {
 
   const poisList = useSelector((state) => state.pois.list);
   const poisListStatus = useSelector((state) => state.pois.poisListStatus);
+
+  const searchByNameList = useSelector((state) => state.pois.searchByNameList);
+  const searchByNameListStatus = useSelector((state) => state.pois.searchByNameListStatus);
 
   //рефы
   const mapRef = useRef(null);
@@ -101,6 +121,7 @@ export default function HomePage() {
     }
   }, [dispatch, routeDetailStatus, selectedRoute]);
 
+  // центрирование
   useEffect(() => {
     if (
       routeDetailStatus === 'succeeded' &&
@@ -116,6 +137,7 @@ export default function HomePage() {
     }
   }, [routeDetailStatus, selectedRoute]);
 
+  // переключение вкладок
   useEffect(() => {
     if (tabValue === 0) {
       setPoiMode(false);
@@ -126,29 +148,72 @@ export default function HomePage() {
     }
   }, [tabValue]);
 
-const handleTabChange = (event, newValue) => {
-  setTabValue(newValue);
-};
+  //события
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
 
-const toggle = (cat) => {
-  setSelected(prev =>
-    prev.includes(cat)
-      ? prev.filter(c => c !== cat)   // удалить
-      : [...prev, cat]                 // добавить
-  );
-};
-const categories = [
-  'Арт-объект', 'Археологический памятник', 'Дворец', 'Дворец/замок',
-  'Достопримечательность', 'Крепость', 'Мост', 'Музей',
-  'Объект наследия', 'Памятник', 'Парк', 'Смотровая площадка',
-  'Усадьба', 'Храм'
-];
+  const toggle = (cat) => {
+    setSelected(prev =>
+      prev.includes(cat)
+        ? prev.filter(c => c !== cat)   
+        : [...prev, cat]                 
+    );
+  };
 
+  // слайдер
+  const sliderHandleChange = (event, newValue) => {
+    setSliderValue(newValue);
+  };
+
+  // autocomplete
+  // Добавление нового Autocomplete
+  const addAutocomplete = () => {
+    const newId = Date.now(); // или использовать UUID
+    setAutocompleteItems(prev => [
+      ...prev,
+      { id: newId, value: null, inputValue: '' }
+    ]);
+  };
+
+  // Удаление Autocomplete
+  const removeAutocomplete = (id) => {
+    setAutocompleteItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Обновление значения Autocomplete
+  const handleAutocompleteChange = (id, newValue, newInputValue) => {
+    setAutocompleteItems(prev => 
+      prev.map(item => 
+        item.id === id 
+          ? { ...item, value: newValue, inputValue: newInputValue || '' }
+          : item
+      )
+    );
+  };
+
+  // Обработчик изменения input
+  const handleInputChange = (id, event, newInputValue) => {
+    handleAutocompleteChange(id, null, newInputValue);
+  };
+
+  // Обработчик изменения выбора
+  const handleValueChange = (id, event, newValue) => {
+    handleAutocompleteChange(id, newValue, null);
+  };
+
+  // Получение всех выбранных значений
+  const getSelectedValues = () => {
+    return autocompleteItems
+      .filter(item => item.value !== null)
+      .map(item => item.value);
+  };
+  
 
   //
   return (
     <>
-    {console.log(poiMode)}
+    {console.log(poisList)}
       <Box 
         sx={{ 
           display: 'flex',
@@ -256,16 +321,45 @@ const categories = [
                   color: 'black', 
                   m:0,
                   p:3,
-                  paddingBottom: 0 
+                  paddingBottom: 0
                 }}
               >
-                <Autocomplete
-                  disablePortal
-                  options={[{code: 1, label: '123'}, {code: 2, label: '456'}]}
-                  sx={{ width: 300 }}
-                  renderInput={(params) => <TextField {...params} label="Объект" size="small" />}
-                />
-                <Button variant="contained" fullWidth sx={{ mt: 2}}>Добавить точку</Button>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', height: '100%' }}>
+                  {autocompleteItems.map((item, index) => (
+                    <>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          flexDirection: 'row', 
+                          gap: 1
+                        }}
+                      >
+                        <PoiSearch /*id={`poi-${item.id}`}*/ item={item} options={searchByNameList} onChange={(event, newValue) => handleValueChange(item.id, event, newValue)}
+                onInputChange={(event, newInputValue) => handleInputChange(item.id, event, newInputValue)}
+                onDelete={removeAutocomplete} />
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => removeAutocomplete(item.id)} 
+                          disabled={autocompleteItems.length <= 1}
+                        >
+                          <RemoveIcon />
+                        </IconButton>
+                      </Box>
+                    </>
+                  ))}
+                </Box> 
+
+                {/* Кнопки */}
+                <Button
+                  variant="contained"
+                  endIcon={<AddIcon />}
+                  onClick={addAutocomplete}                    
+                  sx={{ mt: 2, }}
+                  fullWidth
+                >
+                  Добавить
+                </Button> 
+                <Button variant="contained" sx={{ mt: 2}} fullWidth>Построить маршрут</Button>                                                                       
               </AccordionDetails>
             </Accordion>
           </>
@@ -288,11 +382,14 @@ const categories = [
                 padding: 0, 
                 overflow: 'auto', 
                 minHeight: '360px', 
-                maxHeight: '625px', 
+                maxHeight: '800px', 
                 color: 'black', 
                 m:0,
                 p:3,
-                paddingBottom: 0 
+                paddingBottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
               }}
             >
               <FormGroup>
@@ -310,51 +407,51 @@ const categories = [
                   />
                 ))}                                
               </FormGroup>
+              <Button 
+                variant="contained" 
+                fullWidth
+                onClick={() => {
+                  setSelected([]);
+                }}
+              >
+                Очистить
+              </Button>
+              <Typography   
+                variant="body1"
+                component="label"
+                sx={{
+                  textAlign: 'left',
+                  fontWeight: 500,    
+                  display: 'block',   
+                  mt: 0.5,
+                }}
+              >
+                Количество точек
+              </Typography>
+              <Slider
+                aria-label="QuantityPoints"
+                defaultValue={10}              
+                valueLabelDisplay="auto"
+                shiftStep={30}
+                step={10}
+                marks
+                min={10}
+                max={110}
+                onChange={sliderHandleChange}
+              />
+              <Button 
+                variant="contained"
+                onClick={() => {
+                  dispatch(fetchPoisList({ categories: selected, limit: sliderValue }));
+                }}
+                fullWidth 
+                sx={{ mb: 1 }}
+              >
+                Показать
+              </Button>
             </AccordionDetails>
           </Accordion>
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignContent: 'flex-start',
-              pt: 2,
-              pl: 4,
-              pr: 4, 
-              gap: 1,
-            }}
-          >
-            <Typography   
-              variant="body1"
-              component="label"
-              sx={{
-                textAlign: 'left',
-                fontWeight: 500,
-                mb: 1,            
-                display: 'block',   
-              }}
-            >
-              Количество точек
-            </Typography>
-            <Slider
-              aria-label="QuantityPoints"
-              defaultValue={10}              
-              valueLabelDisplay="auto"
-              shiftStep={30}
-              step={10}
-              marks
-              min={10}
-              max={110}
-              sx={{ mb: 0 }}
-            />
-            <Button 
-              variant="contained"
-              onClick={() => {
-                dispatch(fetchPoisList({ categories: selected, limit: 10 }));
-              }}
-            >
-              Показать
-            </Button>
-          </Box></>
+          </>
         )}
         </Drawer>}
 
@@ -426,7 +523,7 @@ const categories = [
                         properties={{
                           iconContent: `${index + 1}`,
                           hintContent: `${poi.name}`,
-                          balloonContent: `<b>${poi.name}</b><br>`
+                          balloonContent: `<b>${poi.name}</b><br>${poi.category}`
                         }}
                         options={{
                           preset: 'islands#blueStretchyIcon',
@@ -440,201 +537,304 @@ const categories = [
                         }}
                       />
                     ))
-                  )}
-
-                  {/*routeGeometryStatus === 'succeeded' && 
-                    routeDetailStatus === 'succeeded' &&
-                    routeGeometry?.length > 2 && (
-                      <Polyline
-                        geometry={routeGeometry}
-                        options={{
-                          strokeColor: "#000",
-                          strokeWidth: 4,
-                          strokeOpacity: 0.5,
-                        }}
-                      />
-                  )*/}
+                  )}                
                 </Map>
             </YMaps>
           </Box>
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 72,        // отступ от AppBar (64px + 8px)
-              right: 8,      // отступ от правого края
-              width: 400,
-              padding: '10px',
-              bgcolor: 'white',
-              borderRadius: 1,
-              boxShadow: 3,
-              zIndex: 100,    // выше карты
-              color: 'black',
-              overflow: isExpanded ? 'auto' : 'hidden',
-              maxHeight: isExpanded ? `calc(100vh - 100px)` : 40, 
-              opacity: isExpanded ? 1: 0.9,
-            }}
-          >
-             <IconButton
-              size="small"
-              onClick={() => setIsExpanded(!isExpanded)}
+
+          {routeMode && (
+            <>
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 72,        // отступ от AppBar (64px + 8px)
+                  right: 8,      // отступ от правого края
+                  width: 400,
+                  padding: '10px',
+                  bgcolor: 'white',
+                  borderRadius: 1,
+                  boxShadow: 3,
+                  zIndex: 100,    // выше карты
+                  color: 'black',
+                  overflow: isExpanded ? 'auto' : 'hidden',
+                  maxHeight: isExpanded ? `calc(100vh - 100px)` : 40, 
+                  opacity: isExpanded ? 1: 0.9,
+                }}
+              >
+                <IconButton
+                  size="small"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  sx={{
+                    position: 'absolute',
+                    top: 4,
+                    right: 4,
+                    zIndex: 10,
+                    bgcolor: 'background.paper',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  {isExpanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+                </IconButton>
+                {routesListStatus === 'loading' && <CircularProgress size={40}></CircularProgress>}
+                  {routesList && routesListStatus === 'succeeded' && (
+                    <List disablePadding component="nav" sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', transition: 'opacity 0.2s' }}>
+                      <Typography
+                        variant="h5"
+                        component="h2"
+                        onClick={() => setIsExpanded(prev => !prev)}
+                        sx={{
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          color: 'text.primary',
+                          textAlign: 'left',
+                          mb: 1,
+                          pl: 2,
+                          borderBottom: '2px solid',
+                          borderColor: 'primary.main',
+                          pb: 0.5,
+                        }}
+                      >
+                        Маршрут
+                      </Typography>
+
+                      {routesList.length === 0 ? (
+                        <ListItem>
+                          <ListItemText primary="Нет маршрутов" />
+                        </ListItem>
+                      ) : (
+                            selectedRoute && <React.Fragment key={selectedRoute.id}>
+                              <ListItem
+                                button
+                                alignItems="flex-start"
+                                onClick={() => {
+                                  // 1. Загружаем детали для карты (всегда)
+                                  /*dispatch(fetchRouteDetail(selectedRoute.id));
+                                  // 2. Переключаем аккордеон локально
+                                  setExpandedId((prev) => (prev === selectedRoute.id ? null : selectedRoute.id));*/
+                                  setIsExpanded(prev => !prev);
+                                }}
+                                sx={(theme) => ({
+                                  cursor: 'pointer',
+                                  transition: 'background-color 0.2s ease',
+                                  '&:hover': { bgcolor: 'action.hover' },
+                                  '&.Mui-selected, &:hover': {
+                                    // Выделение при hover/selected — для удобства
+                                    bgcolor: isExpanded 
+                                      ? alpha(theme.palette.primary.main, 0.08) 
+                                      : undefined,
+                                  },
+                                })}
+                                selected={true}
+                              >
+                                <ListItemAvatar>
+                                  <Avatar
+                                    alt={selectedRoute.title}
+                                    sx={{
+                                      bgcolor:
+                                        selectedRoute.durationHours < 2
+                                          ? 'green'
+                                          : selectedRoute.durationHours >= 2
+                                          ? 'orange'
+                                          : 'red',
+                                    }}
+                                  >
+                                    {selectedRoute.durationHours}ч
+                                  </Avatar>
+                                </ListItemAvatar>
+
+                                <ListItemText
+                                  primary={selectedRoute.title}
+                                  secondary={
+                                    <React.Fragment>
+                                      <Typography component="span" variant="body2" sx={{ color: 'text.primary', display: 'inline' }}>
+                                        {selectedRoute.durationHours} {pluralizeHours(selectedRoute.durationHours)}
+                                      </Typography>
+                                      {selectedRoute.description && ` — ${selectedRoute.description}`}
+                                    </React.Fragment>
+                                  }
+                                />
+
+                                {isExpanded ? <ExpandLessIcon color="primary" /> : <ExpandMoreIcon />}
+                              </ListItem>
+
+                              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                                <Box sx={{ pl: 9, pr: 2, pb: 2 }}>
+                                  <Divider sx={{ my: 1 }} />
+
+                                  {routeDetailStatus === 'loading' && (
+                                    <Box display="flex" justifyContent="center" my={2}>
+                                      <CircularProgress size={24} />
+                                    </Box>
+                                  )}
+
+                                  {routeDetailStatus === 'succeeded' && (
+                                    <>
+                                      {selectedRoute.description && (
+                                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                                          {selectedRoute.description}
+                                        </Typography>
+                                      )}
+
+                                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                        📍 Этапы ({selectedRoute.stops.length}):
+                                      </Typography>
+
+                                      {selectedRoute.stops.length > 0 ? (
+                                        <List dense disablePadding>
+                                          {selectedRoute.stops.map((stop, i) => (
+                                            <ListItem key={i} sx={{ py: 0.5 }}>
+                                              <ListItemIcon>
+                                                <Box
+                                                  sx={{
+                                                    width: 20,
+                                                    height: 20,
+                                                    borderRadius: '50%',
+                                                    bgcolor: 'primary.main',
+                                                    color: 'white',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    fontSize: '0.75rem',
+                                                    flexShrink: 0,
+                                                  }}
+                                                >
+                                                  {i + 1}
+                                                </Box>
+                                              </ListItemIcon>
+                                              <ListItemText
+                                                primary={stop.pointOfInterest?.name || `Точка ${i + 1}`}
+                                                secondary={stop.note}
+                                              />
+                                            </ListItem>
+                                          ))}
+                                        </List>
+                                      ) : (
+                                        <Typography variant="body2" color="text.secondary">
+                                          Этапы отсутствуют.
+                                        </Typography>
+                                      )}
+                                    </>
+                                  )}
+                                </Box>
+                              </Collapse>
+                            </React.Fragment>
+                      )}
+                    </List>
+                  )}
+              </Box>
+            </>
+          )}
+
+        {poiMode && (
+          <>
+            <Box
               sx={{
                 position: 'absolute',
-                top: 4,
-                right: 4,
-                zIndex: 10,
-                bgcolor: 'background.paper',
-                '&:hover': { bgcolor: 'action.hover' },
+                top: 72,
+                right: 8,
+                width: 400,
+                padding: '10px',
+                bgcolor: 'white',
+                borderRadius: 1,
+                boxShadow: 3,
+                zIndex: 100,
+                color: 'black',
+                overflow: isExpanded ? 'auto' : 'hidden',
+                maxHeight: isExpanded ? `calc(100vh - 100px)` : 40, 
+                opacity: isExpanded ? 1: 0.9,
               }}
             >
-              {isExpanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            </IconButton>
-            {routesListStatus === 'loading' && <CircularProgress size={40}></CircularProgress>}
-              {routesList && routesListStatus === 'succeeded' && (
-                <List disablePadding component="nav" sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', transition: 'opacity 0.2s' }}>
-                  <Typography
-                    variant="h5"
-                    component="h2"
-                    onClick={() => setIsExpanded(prev => !prev)}
-                    sx={{
-                      cursor: 'pointer',
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      textAlign: 'left',
-                      mb: 1,
-                      pl: 2,
-                      borderBottom: '2px solid',
-                      borderColor: 'primary.main',
-                      pb: 0.5,
-                    }}
-                  >
-                    Маршрут
-                  </Typography>
+              <IconButton
+                size="small"
+                onClick={() => setIsExpanded(!isExpanded)}
+                sx={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  zIndex: 10,
+                  bgcolor: 'background.paper',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                {isExpanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+              </IconButton>
+              {poisListStatus === 'loading' && <CircularProgress size={40}></CircularProgress>}
+                {poisList && poisListStatus === 'succeeded' && (
+                  <List disablePadding component="nav" sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', transition: 'opacity 0.2s' }}>
+                    <Typography
+                      variant="h5"
+                      component="h2"
+                      onClick={() => setIsExpanded(prev => !prev)}
+                      sx={{
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        textAlign: 'left',
+                        mb: 1,
+                        pl: 2,
+                        borderBottom: '2px solid',
+                        borderColor: 'primary.main',
+                        pb: 0.5,
+                      }}
+                    >
+                      Объекты
+                    </Typography>
 
-                  {routesList.length === 0 ? (
-                    <ListItem>
-                      <ListItemText primary="Нет маршрутов" />
-                    </ListItem>
-                  ) : (
-                        selectedRoute && <React.Fragment key={selectedRoute.id}>
-                          <ListItem
-                            button
-                            alignItems="flex-start"
-                            onClick={() => {
-                              // 1. Загружаем детали для карты (всегда)
-                              /*dispatch(fetchRouteDetail(selectedRoute.id));
-                              // 2. Переключаем аккордеон локально
-                              setExpandedId((prev) => (prev === selectedRoute.id ? null : selectedRoute.id));*/
-                              setIsExpanded(prev => !prev);
+                    {poisList.length === 0 ? (
+                      <ListItem>
+                        <ListItemText primary="Нет объектов" />
+                      </ListItem>
+                    ) : (
+                      poisList.map((poi, i) => (
+                        <ListItem
+                          button
+                          alignItems="flex-start"
+                          sx={(theme) => ({
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s ease',
+                            '&:hover': { bgcolor: 'action.hover' },
+                            '&.Mui-selected, &:hover': {
+                              bgcolor: alpha(theme.palette.primary.main, 0.08)
+                            },
+                          })}
+                          selected={true}
+                        >
+                          <ListItemIcon>
+                          <Box
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: '50%',
+                              bgcolor: 'primary.main',
+                              color: 'white',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              fontSize: '0.75rem',
+                              flexShrink: 0,
                             }}
-                            sx={(theme) => ({
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s ease',
-                              '&:hover': { bgcolor: 'action.hover' },
-                              '&.Mui-selected, &:hover': {
-                                // Выделение при hover/selected — для удобства
-                                bgcolor: isExpanded 
-                                  ? alpha(theme.palette.primary.main, 0.08) 
-                                  : undefined,
-                              },
-                            })}
-                            selected={true}
                           >
-                            <ListItemAvatar>
-                              <Avatar
-                                alt={selectedRoute.title}
-                                sx={{
-                                  bgcolor:
-                                    selectedRoute.durationHours < 2
-                                      ? 'green'
-                                      : selectedRoute.durationHours >= 2
-                                      ? 'orange'
-                                      : 'red',
-                                }}
-                              >
-                                {selectedRoute.durationHours}ч
-                              </Avatar>
-                            </ListItemAvatar>
-
-                            <ListItemText
-                              primary={selectedRoute.title}
-                              secondary={
-                                <React.Fragment>
-                                  <Typography component="span" variant="body2" sx={{ color: 'text.primary', display: 'inline' }}>
-                                    {selectedRoute.durationHours} {pluralizeHours(selectedRoute.durationHours)}
-                                  </Typography>
-                                  {selectedRoute.description && ` — ${selectedRoute.description}`}
-                                </React.Fragment>
-                              }
-                            />
-
-                            {isExpanded ? <ExpandLessIcon color="primary" /> : <ExpandMoreIcon />}
-                          </ListItem>
-
-                          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                            <Box sx={{ pl: 9, pr: 2, pb: 2 }}>
-                              <Divider sx={{ my: 1 }} />
-
-                              {routeDetailStatus === 'loading' && (
-                                <Box display="flex" justifyContent="center" my={2}>
-                                  <CircularProgress size={24} />
-                                </Box>
-                              )}
-
-                              {routeDetailStatus === 'succeeded' && (
-                                <>
-                                  {selectedRoute.description && (
-                                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                                      {selectedRoute.description}
-                                    </Typography>
-                                  )}
-
-                                  <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                                    📍 Этапы ({selectedRoute.stops.length}):
-                                  </Typography>
-
-                                  {selectedRoute.stops.length > 0 ? (
-                                    <List dense disablePadding>
-                                      {selectedRoute.stops.map((stop, i) => (
-                                        <ListItem key={i} sx={{ py: 0.5 }}>
-                                          <ListItemIcon>
-                                            <Box
-                                              sx={{
-                                                width: 20,
-                                                height: 20,
-                                                borderRadius: '50%',
-                                                bgcolor: 'primary.main',
-                                                color: 'white',
-                                                display: 'flex',
-                                                justifyContent: 'center',
-                                                alignItems: 'center',
-                                                fontSize: '0.75rem',
-                                                flexShrink: 0,
-                                              }}
-                                            >
-                                              {i + 1}
-                                            </Box>
-                                          </ListItemIcon>
-                                          <ListItemText
-                                            primary={stop.pointOfInterest?.name || `Точка ${i + 1}`}
-                                            secondary={stop.note}
-                                          />
-                                        </ListItem>
-                                      ))}
-                                    </List>
-                                  ) : (
-                                    <Typography variant="body2" color="text.secondary">
-                                      Этапы отсутствуют.
-                                    </Typography>
-                                  )}
-                                </>
-                              )}
-                            </Box>
-                          </Collapse>
-                        </React.Fragment>
-                  )}
-                </List>
-              )}
-          </Box>
+                            {i + 1}
+                          </Box>
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={poi.name || `Точка ${i + 1}`}
+                          secondary={
+                            <>
+                              <div>{poi.category}</div>
+                              <div><b>Широта:</b> {poi.latitude}</div>
+                              <div><b>Долгота:</b> {poi.longitude}</div>
+                            </>
+                          }
+                        />
+                        </ListItem>  
+                      ))                                                                                
+                    )}
+                  </List>
+                )}
+            </Box>
+          </>
+        )}      
         </Box>
       </Box>
     </>

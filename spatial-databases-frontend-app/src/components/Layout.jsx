@@ -17,15 +17,14 @@ export default function Layout() {
   //
   return (
     <>
-      {/* 1. Фиксированная шапка — НЕ в потоке документа */}
       {<AppBar
         position="fixed"
         sx={{
           top: 0,
           left: 0,
-          right: 0,           // ← вместо width: 100vw!
+          right: 0, 
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          bgcolor: '#005a4c', // ваш зелёный цвет
+          bgcolor: '#005a4c', // зелёный цвет
         }}
       >
         <Toolbar sx={{ justifyContent: 'center'}}>          
@@ -48,7 +47,6 @@ export default function Layout() {
         </Toolbar>
       </AppBar>}
 
-      {/* 2. Основной контент — под шапкой */}
       <Box
         component="main"
         sx={{
@@ -67,7 +65,7 @@ export default function Layout() {
           boxSizing: 'border-box'
         }}
       >
-        <Outlet /> {/* Сюда подставляются HomePage, ProfilePage и др. */}
+        <Outlet />
       </Box>
     </>
   );
