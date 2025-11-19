@@ -23,6 +23,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 import { YMaps, Map, Placemark, Polyline } from '@pbe/react-yandex-maps';
 import { fetchRoutesList, fetchRouteDetail, fetchRouteGeometry } from '../store/slices/routesSlice';
+import { fetchPoisList } from '../store/slices/poisSlice';
 import { alpha } from '@mui/material/styles';
 
 import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
@@ -35,12 +36,34 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 
 const drawerWidth = 360;
 
+function pluralizeHours(n) {
+  // Берём остаток от деления на 100, чтобы отсечь сотни (111 → 11, 213 → 13)
+  const num = Math.abs(n) % 100;
+  // Если 11–14 — всегда "часов"
+  if (num >= 11 && num <= 14) {
+    return 'часов';
+  }
+  // Смотрим последнюю цифру
+  const lastDigit = num % 10;
+  if (lastDigit === 1) {
+    return 'час';
+  }
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'часа';
+  }
+  return 'часов';
+}
+
 export default function HomePage() {
   const dispatch = useDispatch();
 
   //стейты
   const [expandedId, setExpandedId] = useState(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [selected, setSelected] = useState([]);
+  const [poiMode, setPoiMode] = useState(false);
+  const [routeMode, setRouteMode] = useState(true);
+  const [tabValue, setTabValue] = useState(0); // 0 = "Маршруты", 1 = "Фильтры"
 
   //селекторы
   const routesList = useSelector((state) => state.routes.list);
@@ -51,6 +74,9 @@ export default function HomePage() {
   //const routeDetailError = useSelector((state) => state.routes.routeDetailError);
   const routeGeometry = useSelector((state) => state.routes.geometry);
   const routeGeometryStatus = useSelector((state) => state.routes.geometryStatus);
+
+  const poisList = useSelector((state) => state.pois.list);
+  const poisListStatus = useSelector((state) => state.pois.poisListStatus);
 
   //рефы
   const mapRef = useRef(null);
@@ -76,31 +102,53 @@ export default function HomePage() {
   }, [dispatch, routeDetailStatus, selectedRoute]);
 
   useEffect(() => {
-  if (
-    routeDetailStatus === 'succeeded' &&
-    selectedRoute?.stops.length > 0 &&
-    mapRef.current
-  ) {
-    const first = selectedRoute.stops[0].pointOfInterest;
-    mapRef.current.setCenter(
-      [first.latitude, first.longitude],
-      14, // zoom
-      { duration: 500, flying: true }
-    );
-  }
-}, [routeDetailStatus, selectedRoute]);
+    if (
+      routeDetailStatus === 'succeeded' &&
+      selectedRoute?.stops.length > 0 &&
+      mapRef.current
+    ) {
+      const first = selectedRoute.stops[0].pointOfInterest;
+      mapRef.current.setCenter(
+        [first.latitude, first.longitude],
+        14, // zoom
+        { duration: 500, flying: true }
+      );
+    }
+  }, [routeDetailStatus, selectedRoute]);
 
+  useEffect(() => {
+    if (tabValue === 0) {
+      setPoiMode(false);
+      setRouteMode(true);
+    } else if (tabValue === 1) {
+      setPoiMode(true);
+      setRouteMode(false);
+    }
+  }, [tabValue]);
 
-const [tabValue, setTabValue] = useState(0); // 0 = "Маршруты", 1 = "Фильтры"
 const handleTabChange = (event, newValue) => {
   setTabValue(newValue);
 };
+
+const toggle = (cat) => {
+  setSelected(prev =>
+    prev.includes(cat)
+      ? prev.filter(c => c !== cat)   // удалить
+      : [...prev, cat]                 // добавить
+  );
+};
+const categories = [
+  'Арт-объект', 'Археологический памятник', 'Дворец', 'Дворец/замок',
+  'Достопримечательность', 'Крепость', 'Мост', 'Музей',
+  'Объект наследия', 'Памятник', 'Парк', 'Смотровая площадка',
+  'Усадьба', 'Храм'
+];
 
 
   //
   return (
     <>
-    {console.log(routeGeometry)}
+    {console.log(poiMode)}
       <Box 
         sx={{ 
           display: 'flex',
@@ -169,7 +217,15 @@ const handleTabChange = (event, newValue) => {
                       >                      
                         {routesList.map((route) => {                  
                           return (
-                            <FormControlLabel control={<Radio size="small" />} value={route.title} label={route.title} sx={{ textAlign: 'left' }} />
+                            <FormControlLabel 
+                              control={<Radio size="small" />}
+                              onChange={() => {
+                                dispatch(fetchRouteDetail(route.id));
+                              }}
+                              value={route.title} 
+                              label={route.title} 
+                              sx={{ textAlign: 'left' }} 
+                            />
                           );
                         })}
                       </RadioGroup>
@@ -240,20 +296,19 @@ const handleTabChange = (event, newValue) => {
               }}
             >
               <FormGroup>
-                <FormControlLabel control={<Checkbox size="small" />} label="Арт-объект" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Археологический памятник" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Дворец" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Дворец/замок" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Достопримечательность" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Крепость" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Мост" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Музей" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Объект наследия" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Памятник" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Парк" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Смотровая площадка" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Усадьба" />
-                <FormControlLabel control={<Checkbox size="small" />} label="Храм" />
+                {categories.map(cat => (
+                  <FormControlLabel 
+                    key={cat}
+                    control={
+                      <Checkbox 
+                        size="small"
+                        checked={selected.includes(cat)}
+                        onChange={() => toggle(cat)}
+                      />
+                    } 
+                    label={cat} 
+                  />
+                ))}                                
               </FormGroup>
             </AccordionDetails>
           </Accordion>
@@ -291,7 +346,14 @@ const handleTabChange = (event, newValue) => {
               max={110}
               sx={{ mb: 0 }}
             />
-            <Button variant="contained">Показать</Button>
+            <Button 
+              variant="contained"
+              onClick={() => {
+                dispatch(fetchPoisList({ categories: selected, limit: 10 }));
+              }}
+            >
+              Показать
+            </Button>
           </Box></>
         )}
         </Drawer>}
@@ -322,7 +384,7 @@ const handleTabChange = (event, newValue) => {
                     mapRef.current = map; 
                   }}
                 >
-                  {routeDetailStatus === 'succeeded' &&
+                  {routeDetailStatus === 'succeeded' && routeMode &&
                    selectedRoute.stops.map((stop, index) => (
                     <Placemark 
                       key={`${stop.pointOfInterest.id}-${index}`}
@@ -345,7 +407,7 @@ const handleTabChange = (event, newValue) => {
                     />                    
                     ))
                   }
-                  {routeGeometryStatus === 'succeeded' && routeGeometry && routeGeometry.length > 2 &&
+                  {routeGeometryStatus === 'succeeded' && routeMode && routeGeometry && routeGeometry.length > 2 &&
                    <Polyline
                     geometry={routeGeometry}
                     options={{
@@ -355,6 +417,43 @@ const handleTabChange = (event, newValue) => {
                       strokeOpacity: 0.5,
                     }}
                   />}
+
+                  {poisListStatus === 'succeeded' && poiMode && poisList?.length > 0 && (
+                    poisList.map((poi, index) => (
+                      <Placemark 
+                        key={`${poi.id}-${index}`}
+                        geometry={[poi.latitude, poi.longitude]} 
+                        properties={{
+                          iconContent: `${index + 1}`,
+                          hintContent: `${poi.name}`,
+                          balloonContent: `<b>${poi.name}</b><br>`
+                        }}
+                        options={{
+                          preset: 'islands#blueStretchyIcon',
+                        }}
+                        modules={['geoObject.addon.balloon', 'geoObject.addon.hint']}
+                        onClick={() => {
+                          if (mapRef.current) {
+                            [poi.latitude, poi.longitude],
+                            { duration: 300, flying: true }
+                          }
+                        }}
+                      />
+                    ))
+                  )}
+
+                  {/*routeGeometryStatus === 'succeeded' && 
+                    routeDetailStatus === 'succeeded' &&
+                    routeGeometry?.length > 2 && (
+                      <Polyline
+                        geometry={routeGeometry}
+                        options={{
+                          strokeColor: "#000",
+                          strokeWidth: 4,
+                          strokeOpacity: 0.5,
+                        }}
+                      />
+                  )*/}
                 </Map>
             </YMaps>
           </Box>
@@ -395,7 +494,7 @@ const handleTabChange = (event, newValue) => {
                   <Typography
                     variant="h5"
                     component="h2"
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={() => setIsExpanded(prev => !prev)}
                     sx={{
                       cursor: 'pointer',
                       fontWeight: 600,
@@ -408,7 +507,7 @@ const handleTabChange = (event, newValue) => {
                       pb: 0.5,
                     }}
                   >
-                    Маршруты
+                    Маршрут
                   </Typography>
 
                   {routesList.length === 0 ? (
@@ -416,20 +515,16 @@ const handleTabChange = (event, newValue) => {
                       <ListItemText primary="Нет маршрутов" />
                     </ListItem>
                   ) : (
-                    routesList.map((route) => {
-                      const isExpanded = expandedId === route.id;
-                      const isSelected = selectedRoute?.id === route.id;
-
-                      return (
-                        <React.Fragment key={route.id}>
+                        selectedRoute && <React.Fragment key={selectedRoute.id}>
                           <ListItem
                             button
                             alignItems="flex-start"
                             onClick={() => {
                               // 1. Загружаем детали для карты (всегда)
-                              dispatch(fetchRouteDetail(route.id));
+                              /*dispatch(fetchRouteDetail(selectedRoute.id));
                               // 2. Переключаем аккордеон локально
-                              setExpandedId((prev) => (prev === route.id ? null : route.id));
+                              setExpandedId((prev) => (prev === selectedRoute.id ? null : selectedRoute.id));*/
+                              setIsExpanded(prev => !prev);
                             }}
                             sx={(theme) => ({
                               cursor: 'pointer',
@@ -437,58 +532,55 @@ const handleTabChange = (event, newValue) => {
                               '&:hover': { bgcolor: 'action.hover' },
                               '&.Mui-selected, &:hover': {
                                 // Выделение при hover/selected — для удобства
-                                bgcolor: isExpanded || isSelected 
+                                bgcolor: isExpanded 
                                   ? alpha(theme.palette.primary.main, 0.08) 
                                   : undefined,
                               },
                             })}
+                            selected={true}
                           >
                             <ListItemAvatar>
                               <Avatar
-                                alt={route.title}
+                                alt={selectedRoute.title}
                                 sx={{
                                   bgcolor:
-                                    route.difficulty === 'Легкий'
+                                    selectedRoute.durationHours < 2
                                       ? 'green'
-                                      : route.difficulty === 'Средний'
+                                      : selectedRoute.durationHours >= 2
                                       ? 'orange'
                                       : 'red',
                                 }}
                               >
-                                {route.durationHours}ч
+                                {selectedRoute.durationHours}ч
                               </Avatar>
                             </ListItemAvatar>
 
                             <ListItemText
-                              primary={route.title}
+                              primary={selectedRoute.title}
                               secondary={
                                 <React.Fragment>
                                   <Typography component="span" variant="body2" sx={{ color: 'text.primary', display: 'inline' }}>
-                                    {route.durationHours} часов • {route.difficulty}
+                                    {selectedRoute.durationHours} {pluralizeHours(selectedRoute.durationHours)}
                                   </Typography>
-                                  {route.description && ` — ${route.description}`}
+                                  {selectedRoute.description && ` — ${selectedRoute.description}`}
                                 </React.Fragment>
                               }
                             />
 
-                            {/* Иконка раскрытия */}
                             {isExpanded ? <ExpandLessIcon color="primary" /> : <ExpandMoreIcon />}
                           </ListItem>
 
-                          {/* === Аккордеон: детали маршрута === */}
                           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                             <Box sx={{ pl: 9, pr: 2, pb: 2 }}>
                               <Divider sx={{ my: 1 }} />
 
-                              {/* Показываем, пока грузятся детали */}
-                              {routeDetailStatus === 'loading' && selectedRoute?.id === route.id && (
+                              {routeDetailStatus === 'loading' && (
                                 <Box display="flex" justifyContent="center" my={2}>
                                   <CircularProgress size={24} />
                                 </Box>
                               )}
 
-                              {/* Готовые детали */}
-                              {routeDetailStatus === 'succeeded' && selectedRoute?.id === route.id && (
+                              {routeDetailStatus === 'succeeded' && (
                                 <>
                                   {selectedRoute.description && (
                                     <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -534,15 +626,11 @@ const handleTabChange = (event, newValue) => {
                                       Этапы отсутствуют.
                                     </Typography>
                                   )}
-
-                                  {/* Можно добавить кнопку "Начать маршрут" и т.д. */}
                                 </>
                               )}
                             </Box>
                           </Collapse>
                         </React.Fragment>
-                      );
-                    })
                   )}
                 </List>
               )}
