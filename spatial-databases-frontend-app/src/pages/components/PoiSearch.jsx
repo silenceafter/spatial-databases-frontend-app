@@ -10,18 +10,21 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchSearchByNameList } from '../../store/slices/poisSlice';
 
-const PoiSearch = React.memo(({ item, options, onChange, onInputChange, onDelete }) => {
+const PoiSearch = React.memo(({ item, onValueChange, onInputChange, /*, onDelete*/ }) => {
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
+  const [options, setOptions] = useState([]);
 
   //стейты
   /*const [inputValue, setInputValue] = useState(selectedValue ? `${selectedValue?.code} ${selectedValue?.name}` : '');
-  const [selectedOption, setSelectedOption] = useState(selectedValue || null);
+  const [selectedOption, setSelectedOption] = useState(selectedValue || null);*/
 
   //селекторы
   const searchByNameList = useSelector((state) => state.pois.searchByNameList);
+  const searchByNameListStatus = useSelector((state) => state.pois.searchByNameListStatus);
 
   //эффекты
-  useEffect(() => {
+  /*useEffect(() => {
     setInputValue(selectedValue ? `${selectedValue?.code} ${selectedValue?.name}` : '');
     setSelectedOption(selectedValue || null);
   }, [selectedValue, dispatch]);*/
@@ -38,7 +41,7 @@ const PoiSearch = React.memo(({ item, options, onChange, onInputChange, onDelete
           );
         }}
         onInputChange={onInputChange}
-        onChange={onChange}
+        onChange={onValueChange}
         inputValue={item.inputValue}
         loadingText="поиск данных"
         noOptionsText="введите наименование объекта"
@@ -68,7 +71,7 @@ const PoiSearch = React.memo(({ item, options, onChange, onInputChange, onDelete
               required
               fullWidth
               name='poiName'
-              id={id}
+              /*id={id}*/
               placeholder={'Наименование объекта'}
               variant="outlined"
               sx={{ backgroundColor: '#fff', borderRadius: 1 }}

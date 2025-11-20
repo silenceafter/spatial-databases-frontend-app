@@ -334,9 +334,13 @@ export default function HomePage() {
                           gap: 1
                         }}
                       >
-                        <PoiSearch /*id={`poi-${item.id}`}*/ item={item} options={searchByNameList} onChange={(event, newValue) => handleValueChange(item.id, event, newValue)}
-                onInputChange={(event, newInputValue) => handleInputChange(item.id, event, newInputValue)}
-                onDelete={removeAutocomplete} />
+                        <PoiSearch /*id={`poi-${item.id}`}*/ 
+                          item={item} 
+                          options={searchByNameList} 
+                          onChange={(event, newValue) => handleValueChange(item.id, event, newValue)}
+                          onInputChange={(event, newInputValue) => handleInputChange(item.id, event, newInputValue)}
+                          /*onDelete={removeAutocomplete}*/
+                        />
                         <IconButton 
                           color="primary" 
                           onClick={() => removeAutocomplete(item.id)} 
