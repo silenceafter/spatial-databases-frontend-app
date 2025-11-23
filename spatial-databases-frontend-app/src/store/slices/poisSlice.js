@@ -8,12 +8,15 @@ const initialState = {
     searchByNameList: [], 
     searchByNameListStatus: 'idle', /* idle | loading | succeded | failed */
     searchByNameError: null,
+    geometry: [], /* poisGeometry */
+    geometryStatus: 'idle',
+    geometryError: null,
   }
 };
 
 // Загрузка списка точек
 export const fetchPoisList = createAsyncThunk(
-  'routes/fetchPoisList',
+  'pois/fetchPoisList',
   async ({categories, limit}, { rejectWithValue}) => {
     try {
       const params = new URLSearchParams();
@@ -30,14 +33,14 @@ export const fetchPoisList = createAsyncThunk(
       }
       return data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch routes');
+      return rejectWithValue(error.message || 'Failed to fetch pois');
     }    
   }
 );
 
 // Загрузка списка точек
 export const fetchSearchByNameList = createAsyncThunk(
-  'routes/fetchSearchByNameList',
+  'pois/fetchSearchByNameList',
   async ({search, limit}, { rejectWithValue}) => {
     try {
       const params = new URLSearchParams();
@@ -51,8 +54,26 @@ export const fetchSearchByNameList = createAsyncThunk(
       }
       return data;
     } catch (error) {
-      return rejectWithValue(error.message || 'Failed to fetch routes');
+      return rejectWithValue(error.message || 'Failed to fetch pois');
     }    
+  }
+);
+
+// Пешеходный маршрут на основе выбранных точек
+export const fetchPoisGeometry = createAsyncThunk(
+  'pois/fetchPoisGeometry',
+  async (stops, { rejectWithValue }) => {
+    try {
+      const coords = stops.map(([lon, lat]) => `${lon},${lat}`).join(';');
+      const response = await fetch(`https://router.project-osrm.org/route/v1/foot/${coords}?geometries=geojson&overview=simplified&annotations=true`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Network response was not ok');
+      }
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message || 'Failed to fetch pois');
+    }
   }
 );
 
@@ -89,6 +110,21 @@ const poisSlice = createSlice({
         state.searchByNameListStatus = 'failed';
         state.searchByNameError = action.error.message;
         state.searchByNameList = [];
+      })
+      .addCase(fetchPoisGeometry.pending, (state) => {
+        state.geometryStatus = 'loading';
+        state.geometryError = null;
+      })
+      .addCase(fetchPoisGeometry.fulfilled, (state, action) => {
+        const fixedPath = action.payload.routes[0].geometry.coordinates.map(([lat, lon]) => [lon, lat]);
+        state.geometry = fixedPath;
+        state.geometryError = null;
+        state.geometryStatus = 'succeeded';
+      })
+      .addCase(fetchPoisGeometry.rejected, (state, action) => {
+        state.geometryStatus = 'failed';
+        state.geometryError = action.payload.errorMessage;
+        state.geometry = null;
       });
   }
 });
