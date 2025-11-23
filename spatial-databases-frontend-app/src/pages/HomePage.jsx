@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 reactify, YMapClusterer, clusterByGrid, YMapHint, YMapHintContext } from '../helpers';*/
 import { Box, Button, Drawer, Grid, Avatar, List, ListItem, Divider, ListItemAvatar, Tab, Tabs, TextField, FormGroup, FormControlLabel, Checkbox, RadioGroup, Radio,
   ListItemIcon, Autocomplete, ButtonGroup,
-  ListItemText, ListItemButton, Toolbar, Typography, Collapse, Slider,
+  ListItemText, ListItemButton, Toolbar, Typography, Collapse, Slider, Chip,
   CircularProgress,
   FormControl,
   FormLabel} from '@mui/material';
@@ -38,12 +38,35 @@ import { PoiSearch } from './components/PoiSearch';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 
-const drawerWidth = 360;
+const drawerWidth = 320;
 const categories = [
   'Арт-объект', 'Археологический памятник', 'Дворец', 'Дворец/замок',
   'Достопримечательность', 'Крепость', 'Мост', 'Музей',
   'Объект наследия', 'Памятник', 'Парк', 'Смотровая площадка',
   'Усадьба', 'Храм'
+];
+
+const marks = [
+  {
+    value: 10,
+    label: '10',
+  },
+  {
+    value: 20,
+    label: '20',
+  },
+  {
+    value: 30,
+    label: '30',
+  },
+  {
+    value: 40,
+    label: '40',
+  },
+  {
+    value: 50,
+    label: '50',
+  }
 ];
 
 function pluralizeHours(n) {
@@ -209,6 +232,9 @@ export default function HomePage() {
       .map(item => item.value);
   };
   
+  function valuetext(value) {
+  return `${value}°C`;
+}
 
   //
   return (
@@ -368,59 +394,91 @@ export default function HomePage() {
             </Accordion>
           </>
         )}
-        {tabValue === 1 && (<>
-          <Accordion defaultExpanded 
-            elevation={3} 
-            sx={{ bgcolor: 'white', color: 'white', width: '100%', overflow: 'hidden', flexShrink: 0 }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              aria-controls="panel1-content"
-              id="panel1-header"
-              sx={{ backgroundColor: "primary.main", }}
+        {tabValue === 1 && (
+          <>
+            <Accordion defaultExpanded 
+              elevation={3} 
+              sx={{ bgcolor: 'white', color: 'white', width: '100%', overflow: 'hidden', flexShrink: 0 }}
             >
-              <Typography component="span">Категории объектов</Typography>
-            </AccordionSummary>
-            <AccordionDetails 
-              sx={{ 
-                padding: 0, 
-                overflow: 'auto', 
-                minHeight: '360px', 
-                maxHeight: '800px', 
-                color: 'black', 
-                m:0,
-                p:3,
-                paddingBottom: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2
-              }}
-            >
-              <FormGroup>
-                {categories.map(cat => (
-                  <FormControlLabel 
-                    key={cat}
-                    control={
-                      <Checkbox 
-                        size="small"
-                        checked={selected.includes(cat)}
-                        onChange={() => toggle(cat)}
-                      />
-                    } 
-                    label={cat} 
-                  />
-                ))}                                
-              </FormGroup>
-              <Button 
-                variant="contained" 
-                fullWidth
-                onClick={() => {
-                  setSelected([]);
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls="panel1-content"
+                id="panel1-header"
+                sx={{ backgroundColor: "primary.main", }}
+              >
+                <Typography component="span">Категории объектов</Typography>
+              </AccordionSummary>
+              <AccordionDetails 
+                sx={{ 
+                  padding: 0, 
+                  overflow: 'auto', 
+                  minHeight: '10vh', 
+                  maxHeight: 'calc(60vh - 118px)', 
+                  color: 'black', 
+                  m:0,
+                  p:3,
+                  paddingBottom: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
                 }}
               >
-                Очистить
-              </Button>
-              <Typography   
+                <FormGroup>
+                  {categories.map(cat => (
+                    <FormControlLabel 
+                      key={cat}
+                      control={
+                        <Checkbox 
+                          size="small"
+                          checked={selected.includes(cat)}
+                          onChange={() => toggle(cat)}
+                        />
+                      } 
+                      label={cat} 
+                    />
+                  ))}                                
+                </FormGroup>
+                <Button 
+                  variant="contained" 
+                  fullWidth
+                  onClick={() => {
+                    setSelected([]);
+                  }}
+                >
+                  Очистить
+                </Button>
+              </AccordionDetails>
+            </Accordion>
+
+            { /* Отображается по умолчанию */ }
+            <Box sx={{ 
+              m:0,
+              p:3,
+              paddingBottom: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2 }}
+            >
+              {selected.length === 0 
+                ? (<Chip 
+                    label="Все объекты" 
+                    color="success" 
+                    sx={{ width: 'fit-content' }}
+                  />
+                  ) 
+                : (<Chip
+                    sx={{
+                      height: 'auto',
+                      '& .MuiChip-label': {
+                        display: 'block',
+                        whiteSpace: 'normal',
+                      },
+                      width: 'fit-content'
+                    }}
+                    label={selected.join(', ')}
+                  />
+              )}
+            <Typography   
                 variant="body1"
                 component="label"
                 sx={{
@@ -431,30 +489,30 @@ export default function HomePage() {
                 }}
               >
                 Количество точек
-              </Typography>
-              <Slider
-                aria-label="QuantityPoints"
-                defaultValue={10}              
-                valueLabelDisplay="auto"
-                shiftStep={30}
-                step={10}
-                marks
-                min={10}
-                max={110}
-                onChange={sliderHandleChange}
-              />
-              <Button 
-                variant="contained"
-                onClick={() => {
-                  dispatch(fetchPoisList({ categories: selected, limit: sliderValue }));
-                }}
-                fullWidth 
-                sx={{ mb: 1 }}
-              >
-                Показать
-              </Button>
-            </AccordionDetails>
-          </Accordion>
+            </Typography>
+            <Slider
+              aria-label="QuantityPoints"
+              defaultValue={10}              
+              valueLabelDisplay="auto"
+              shiftStep={30}
+              step={10}
+              getAriaValueText={valuetext}
+              marks={marks}
+              min={10}
+              max={50}
+              onChange={sliderHandleChange}
+            />
+            <Button 
+              variant="contained"
+              onClick={() => {
+                dispatch(fetchPoisList({ categories: selected, limit: sliderValue }));
+              }}
+              fullWidth 
+              sx={{ mb: 1 }}
+            >
+              Показать
+            </Button>
+            </Box>
           </>
         )}
         </Drawer>}
@@ -744,6 +802,7 @@ export default function HomePage() {
                 zIndex: 100,
                 color: 'black',
                 overflow: isExpanded ? 'auto' : 'hidden',
+                /*minHeight: 100,*/
                 maxHeight: isExpanded ? `calc(100vh - 100px)` : 40, 
                 opacity: isExpanded ? 1: 0.9,
               }}
@@ -763,79 +822,77 @@ export default function HomePage() {
                 {isExpanded ? <ChevronRightIcon /> : <ChevronLeftIcon />}
               </IconButton>
               {poisListStatus === 'loading' && <CircularProgress size={40}></CircularProgress>}
-                {poisList && poisListStatus === 'succeeded' && (
-                  <List disablePadding component="nav" sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', transition: 'opacity 0.2s' }}>
-                    <Typography
-                      variant="h5"
-                      component="h2"
-                      onClick={() => setIsExpanded(prev => !prev)}
-                      sx={{
-                        cursor: 'pointer',
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        textAlign: 'left',
-                        mb: 1,
-                        pl: 2,
-                        borderBottom: '2px solid',
-                        borderColor: 'primary.main',
-                        pb: 0.5,
-                      }}
-                    >
-                      Объекты
-                    </Typography>
+                <List disablePadding component="nav" sx={{ width: '100%', maxWidth: 600, bgcolor: 'background.paper', transition: 'opacity 0.2s' }}>
+                  <Typography
+                    variant="h5"
+                    component="h2"
+                    onClick={() => setIsExpanded(prev => !prev)}
+                    sx={{
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      textAlign: 'left',
+                      mb: 1,
+                      pl: 2,
+                      borderBottom: '2px solid',
+                      borderColor: 'primary.main',
+                      pb: 0.5,
+                    }}
+                  >
+                    Объекты
+                  </Typography>
 
-                    {poisList.length === 0 ? (
-                      <ListItem>
-                        <ListItemText primary="Нет объектов" />
-                      </ListItem>
-                    ) : (
-                      poisList.map((poi, i) => (
-                        <ListItem
-                          button
-                          alignItems="flex-start"
-                          sx={(theme) => ({
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s ease',
-                            '&:hover': { bgcolor: 'action.hover' },
-                            '&.Mui-selected, &:hover': {
-                              bgcolor: alpha(theme.palette.primary.main, 0.08)
-                            },
-                          })}
-                          selected={true}
+                  {!poisList ? (
+                    <ListItem>
+                      <ListItemText primary="Нет объектов" />
+                    </ListItem>
+                  ) : (
+                    poisList.map((poi, i) => (
+                      <ListItem
+                        button
+                        alignItems="flex-start"
+                        sx={(theme) => ({
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s ease',
+                          '&:hover': { bgcolor: 'action.hover' },
+                          '&.Mui-selected, &:hover': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.08)
+                          },
+                        })}
+                        selected={true}
+                      >
+                        <ListItemIcon>
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.main',
+                            color: 'white',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            fontSize: '0.75rem',
+                            flexShrink: 0,
+                          }}
                         >
-                          <ListItemIcon>
-                          <Box
-                            sx={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: '50%',
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              display: 'flex',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              fontSize: '0.75rem',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {i + 1}
-                          </Box>
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={poi.name || `Точка ${i + 1}`}
-                          secondary={
-                            <>
-                              <div>{poi.category}</div>
-                              <div><b>Широта:</b> {poi.latitude}</div>
-                              <div><b>Долгота:</b> {poi.longitude}</div>
-                            </>
-                          }
-                        />
-                        </ListItem>  
-                      ))                                                                                
-                    )}
-                  </List>
-                )}
+                          {i + 1}
+                        </Box>
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={poi.name || `Точка ${i + 1}`}
+                        secondary={
+                          <>
+                            <div>{poi.category}</div>
+                            <div><b>Широта:</b> {poi.latitude}</div>
+                            <div><b>Долгота:</b> {poi.longitude}</div>
+                          </>
+                        }
+                      />
+                      </ListItem>  
+                    ))                                                                                
+                  )}
+                </List>
             </Box>
           </>
         )}      
